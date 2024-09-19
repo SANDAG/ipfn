@@ -4,12 +4,22 @@ import numpy as np
 import pandas as pd
 from itertools import product
 import copy
+import warnings
 
 
 class ipfn(object):
 
-    def __init__(self, original, aggregates, dimensions, weight_col='total',
-                 convergence_rate=1e-5, max_iteration=500, verbose=0, rate_tolerance=1e-8):
+    def __init__(
+        self,
+        original,
+        aggregates,
+        dimensions,
+        weight_col="total",
+        convergence_rate=1e-5,
+        max_iteration=500,
+        verbose=0,
+        rate_tolerance=1e-8,
+    ):
         """
         Initialize the ipfn class
 
@@ -41,7 +51,11 @@ class ipfn(object):
         self.conv_rate = convergence_rate
         self.max_itr = max_iteration
         if verbose not in [0, 1, 2]:
-            raise(ValueError(f"wrong verbose input, must be either 0, 1 or 2 but got {verbose}"))
+            raise (
+                ValueError(
+                    f"wrong verbose input, must be either 0, 1 or 2 but got {verbose}"
+                )
+            )
         self.verbose = verbose
         self.rate_tolerance = rate_tolerance
 
@@ -50,15 +64,15 @@ class ipfn(object):
         inc_axis = 0
         idx = ()
         for dim in range(dims):
-            if (inc_axis < len(axes)):
-                if (dim == axes[inc_axis]):
+            if inc_axis < len(axes):
+                if dim == axes[inc_axis]:
                     idx += (elems[inc_axis],)
                     inc_axis += 1
                 else:
                     idx += (np.s_[:],)
         return idx
 
-    def ipfn_np(self, m, aggregates, dimensions, weight_col='total'):
+    def ipfn_np(self, m, aggregates, dimensions, weight_col="total"):
         """
         Runs the ipfn method from a matrix m, aggregates/marginals and the dimension(s) preserved.
         For example:
@@ -143,14 +157,20 @@ class ipfn(object):
                 m_slice = m[idx]
                 m_ijk = m_slice.sum()
                 # print('Current vs original', abs(m_ijk/ori_ijk - 1))
-                if abs(m_ijk / ori_ijk - 1) > max_conv:
-                    max_conv = abs(m_ijk / ori_ijk - 1)
+                if self.verbose > 0:
+                    if abs(m_ijk / ori_ijk - 1) > max_conv:
+                        max_conv = abs(m_ijk / ori_ijk - 1)
+                else:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        if abs(m_ijk / ori_ijk - 1) > max_conv:
+                            max_conv = abs(m_ijk / ori_ijk - 1)
 
             product_elem = []
 
         return m, max_conv
 
-    def ipfn_df(self, df, aggregates, dimensions, weight_col='total'):
+    def ipfn_df(self, df, aggregates, dimensions, weight_col="total"):
         """
         Runs the ipfn method from a dataframe df, aggregates/marginals and the dimension(s) preserved.
         For example:
@@ -224,13 +244,15 @@ class ipfn(object):
                     msk = feature
 
                 if den == 0:
-                    table_update.loc[msk, weight_col] =\
-                        table_current.loc[feature, weight_col] *\
-                        xijk.loc[feature]
+                    table_update.loc[msk, weight_col] = (
+                        table_current.loc[feature, weight_col] * xijk.loc[feature]
+                    )
                 else:
-                    table_update.loc[msk, weight_col] = \
-                        table_current.loc[feature, weight_col].astype(float) * \
-                        xijk.loc[feature] / den
+                    table_update.loc[msk, weight_col] = (
+                        table_current.loc[feature, weight_col].astype(float)
+                        * xijk.loc[feature]
+                        / den
+                    )
 
             table_update.reset_index(inplace=True)
             table_current.reset_index(inplace=True)
@@ -243,7 +265,14 @@ class ipfn(object):
         for features in dimensions:
             tmp = table_update.groupby(features)[weight_col].sum()
             ori_ijk = aggregates[inc]
-            temp_conv = max(abs(tmp / ori_ijk - 1))
+
+            if self.verbose > 0:
+                temp_conv = max(abs(tmp / ori_ijk - 1))
+            else:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    temp_conv = max(abs(tmp / ori_ijk - 1))
+
             if temp_conv > max_conv:
                 max_conv = temp_conv
             inc += 1
@@ -266,10 +295,16 @@ class ipfn(object):
             ipfn_method = self.ipfn_df
         elif isinstance(self.original, np.ndarray):
             ipfn_method = self.ipfn_np
-            self.original = self.original.astype('float64')
+            self.original = self.original.astype("float64")
         else:
-            raise(ValueError(f'Data input instance not recognized. The input matrix is not a numpy array or pandas DataFrame'))
-        while ((i <= self.max_itr and conv > self.conv_rate) and (i <= self.max_itr and abs(conv - old_conv) > self.rate_tolerance)):
+            raise (
+                ValueError(
+                    f"Data input instance not recognized. The input matrix is not a numpy array or pandas DataFrame"
+                )
+            )
+        while (i <= self.max_itr and conv > self.conv_rate) and (
+            i <= self.max_itr and abs(conv - old_conv) > self.rate_tolerance
+        ):
             old_conv = conv
             m, conv = ipfn_method(m, self.aggregates, self.dimensions, self.weight_col)
             conv_list.append(conv)
@@ -277,11 +312,13 @@ class ipfn(object):
         converged = 1
         if i <= self.max_itr:
             if (not conv > self.conv_rate) & (self.verbose > 1):
-                print('ipfn converged: convergence_rate below threshold')
-            elif not abs(conv - old_conv) > self.rate_tolerance:
-                print('ipfn converged: convergence_rate not updating or below rate_tolerance')
+                print("ipfn converged: convergence_rate below threshold")
+            elif (not abs(conv - old_conv) > self.rate_tolerance) & (self.verbose > 0):
+                print(
+                    "ipfn converged: convergence_rate not updating or below rate_tolerance"
+                )
         else:
-            print('Maximum iterations reached')
+            print("Maximum iterations reached")
             converged = 0
 
         # Handle the verbose
@@ -290,6 +327,16 @@ class ipfn(object):
         elif self.verbose == 1:
             return m, converged
         elif self.verbose == 2:
-            return m, converged, pd.DataFrame({'iteration': range(i), 'conv': conv_list}).set_index('iteration')
+            return (
+                m,
+                converged,
+                pd.DataFrame({"iteration": range(i), "conv": conv_list}).set_index(
+                    "iteration"
+                ),
+            )
         else:
-            raise(ValueError(f'wrong verbose input, must be either 0, 1 or 2 but got {self.verbose}'))
+            raise (
+                ValueError(
+                    f"wrong verbose input, must be either 0, 1 or 2 but got {self.verbose}"
+                )
+            )

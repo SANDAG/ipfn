@@ -11,14 +11,13 @@ The algorithm exists in 2 versions:
 
 The algorithm recognizes the input variable type and and uses the appropriate version to solve the problem. To install the package:
 
-*   pip install ipfn
-*   pip install git+http://github.com/dirguis/ipfn@master
+*   pip install git+https://github.com/SANDAG/ipfn@master
 
 For more information and examples, please visit:
 
 *   `wikipedia page on ipf <https://en.wikipedia.org/wiki/Iterative_proportional_fitting>`_
 *   `slides explaining the methodology and links to specific examples <http://www.demog.berkeley.edu/~eddieh/IPFDescription/AKDOLWDIPFTWOD.pdf>`_
-*   https://github.com/Dirguis/ipfn
+*   https://github.com/SANDAG/ipfn
 
 ----
 
