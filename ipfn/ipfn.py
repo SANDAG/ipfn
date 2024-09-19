@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import product
 import copy
+import warnings
 
 
 class ipfn(object):
@@ -156,8 +157,13 @@ class ipfn(object):
                 m_slice = m[idx]
                 m_ijk = m_slice.sum()
                 # print('Current vs original', abs(m_ijk/ori_ijk - 1))
-                if abs(m_ijk / ori_ijk - 1) > max_conv:
-                    max_conv = abs(m_ijk / ori_ijk - 1)
+                if self.verbose > 0:
+                    if abs(m_ijk / ori_ijk - 1) > max_conv:
+                        max_conv = abs(m_ijk / ori_ijk - 1)
+                else:
+                    with warnings.filterwarnings("ignore", category=RuntimeWarning):
+                        if abs(m_ijk / ori_ijk - 1) > max_conv:
+                            max_conv = abs(m_ijk / ori_ijk - 1)
 
             product_elem = []
 
@@ -258,7 +264,13 @@ class ipfn(object):
         for features in dimensions:
             tmp = table_update.groupby(features)[weight_col].sum()
             ori_ijk = aggregates[inc]
-            temp_conv = max(abs(tmp / ori_ijk - 1))
+
+            if self.verbose > 0:
+                temp_conv = max(abs(tmp / ori_ijk - 1))
+            else:
+                with warnings.filterwarnings("ignore", category=RuntimeWarning):
+                    temp_conv = max(abs(tmp / ori_ijk - 1))
+
             if temp_conv > max_conv:
                 max_conv = temp_conv
             inc += 1
