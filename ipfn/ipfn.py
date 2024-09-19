@@ -161,7 +161,8 @@ class ipfn(object):
                     if abs(m_ijk / ori_ijk - 1) > max_conv:
                         max_conv = abs(m_ijk / ori_ijk - 1)
                 else:
-                    with warnings.filterwarnings("ignore", category=RuntimeWarning):
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
                         if abs(m_ijk / ori_ijk - 1) > max_conv:
                             max_conv = abs(m_ijk / ori_ijk - 1)
 
@@ -268,7 +269,8 @@ class ipfn(object):
             if self.verbose > 0:
                 temp_conv = max(abs(tmp / ori_ijk - 1))
             else:
-                with warnings.filterwarnings("ignore", category=RuntimeWarning):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
                     temp_conv = max(abs(tmp / ori_ijk - 1))
 
             if temp_conv > max_conv:
